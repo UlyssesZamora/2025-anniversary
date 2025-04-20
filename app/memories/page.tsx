@@ -1,20 +1,31 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { Heart } from "lucide-react"
-import { useInView } from "react-intersection-observer"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Heart } from "lucide-react";
+import { useInView } from "react-intersection-observer";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type Memory = {
+  id: string;
+  title: string;
+  date: string;
+  description: string;
+  image: string;
+};
 
 // Simulated function to fetch memories
 const fetchMemories = async (year: string, page: number) => {
-  // This would typically be an API call
-  await new Promise((resolve) => setTimeout(resolve, 1000)) // Simulate API delay
-
   const allMemories = [
     // 2020
     {
@@ -77,52 +88,58 @@ const fetchMemories = async (year: string, page: number) => {
       image: "/placeholder.svg?height=400&width=600",
     },
     // Add more memories here...
-  ]
+  ];
 
-  const filteredMemories = year === "all" ? allMemories : allMemories.filter((memory) => memory.date.includes(year))
-  const paginatedMemories = filteredMemories.slice(0, page * 6)
+  const filteredMemories =
+    year === "all"
+      ? allMemories
+      : allMemories.filter((memory) => memory.date.includes(year));
+  const paginatedMemories = filteredMemories.slice(0, page * 6);
 
   return {
     memories: paginatedMemories,
     hasMore: paginatedMemories.length < filteredMemories.length,
-  }
-}
+  };
+};
 
 export default function MemoriesPage() {
-  const [selectedYear, setSelectedYear] = useState("all")
-  const [memories, setMemories] = useState([])
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const { ref, inView } = useInView()
+  const [selectedYear, setSelectedYear] = useState("all");
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const { ref, inView } = useInView();
 
   useEffect(() => {
-    loadMoreMemories()
-  }, [selectedYear])
+    loadMoreMemories();
+  }, [selectedYear]);
 
   useEffect(() => {
     if (inView && hasMore) {
-      loadMoreMemories()
+      loadMoreMemories();
     }
-  }, [inView, hasMore])
+  }, [inView, hasMore]);
 
   const loadMoreMemories = async () => {
-    const result = await fetchMemories(selectedYear, page)
-    setMemories(result.memories)
-    setHasMore(result.hasMore)
-    setPage((prevPage) => prevPage + 1)
-  }
+    const result = await fetchMemories(selectedYear, page);
+    setMemories(result.memories);
+    setHasMore(result.hasMore);
+    setPage((prevPage) => prevPage + 1);
+  };
 
   const handleYearChange = (year: string) => {
-    setSelectedYear(year)
-    setPage(1)
-    setMemories([])
-    setHasMore(true)
-  }
+    setSelectedYear(year);
+    setPage(1);
+    setMemories([]);
+    setHasMore(true);
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white/80 px-6 backdrop-blur-sm">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-rose-600">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-semibold text-rose-600"
+        >
           <Heart className="h-5 w-5 fill-rose-600" />
           <span>Our Story</span>
         </Link>
@@ -133,10 +150,16 @@ export default function MemoriesPage() {
           <Link href="/memories" className="text-sm font-medium text-rose-600">
             Memories
           </Link>
-          <Link href="/letter" className="text-sm font-medium hover:text-rose-600">
+          <Link
+            href="/letter"
+            className="text-sm font-medium hover:text-rose-600"
+          >
             Love Letter
           </Link>
-          <Link href="/making-of" className="text-sm font-medium hover:text-rose-600">
+          <Link
+            href="/making-of"
+            className="text-sm font-medium hover:text-rose-600"
+          >
             Making Of
           </Link>
         </nav>
@@ -162,14 +185,19 @@ export default function MemoriesPage() {
       </header>
       <main className="flex-1 bg-rose-50/50 px-4 py-12">
         <div className="mx-auto max-w-6xl">
-          <h1 className="mb-8 text-center text-4xl font-bold text-rose-700">Our Memories</h1>
+          <h1 className="mb-8 text-center text-4xl font-bold text-rose-700">
+            Our Memories
+          </h1>
           <p className="mx-auto mb-12 max-w-2xl text-center text-gray-700">
-            A collection of our most cherished moments together. Each memory tells a story of our journey and the love
-            we share.
+            A collection of our most cherished moments together. Each memory
+            tells a story of our journey and the love we share.
           </p>
 
           <div className="mb-8 flex justify-center">
-            <Select onValueChange={handleYearChange} defaultValue={selectedYear}>
+            <Select
+              onValueChange={handleYearChange}
+              defaultValue={selectedYear}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by year" />
               </SelectTrigger>
@@ -196,7 +224,9 @@ export default function MemoriesPage() {
                     />
                   </div>
                   <CardContent className="p-4">
-                    <h3 className="mb-1 text-xl font-semibold text-rose-700">{memory.title}</h3>
+                    <h3 className="mb-1 text-xl font-semibold text-rose-700">
+                      {memory.title}
+                    </h3>
                     <p className="mb-2 text-sm text-gray-500">{memory.date}</p>
                     <p className="text-gray-700">{memory.description}</p>
                   </CardContent>
@@ -217,9 +247,11 @@ export default function MemoriesPage() {
       <footer className="border-t bg-gray-50 px-6 py-8">
         <div className="mx-auto max-w-7xl text-center">
           <p className="mb-2 text-sm text-gray-600">Made with ❤️ for you</p>
-          <p className="text-xs text-gray-500">Happy Anniversary! {new Date().getFullYear()}</p>
+          <p className="text-xs text-gray-500">
+            Happy Anniversary! {new Date().getFullYear()}
+          </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }
