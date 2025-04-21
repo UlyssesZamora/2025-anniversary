@@ -24,7 +24,6 @@ type Memory = {
   image: string;
 };
 
-// Simulated function to fetch memories
 const fetchMemories = async (year: string, page: number) => {
   const allMemories = [
     // 2020
@@ -213,8 +212,12 @@ export default function MemoriesPage() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {memories.map((memory) => (
-              <Link key={memory.id} href={`/memories/${memory.id}`}>
-                <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg">
+              <Link
+                key={memory.id}
+                href={`/memories/${memory.id}`}
+                className="block h-full"
+              >
+                <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg">
                   <div className="relative h-64 w-full overflow-hidden">
                     <Image
                       src={memory.image || "/placeholder.svg"}
@@ -223,12 +226,14 @@ export default function MemoriesPage() {
                       className="object-cover transition-transform duration-300 hover:scale-105"
                     />
                   </div>
-                  <CardContent className="p-4">
-                    <h3 className="mb-1 text-xl font-semibold text-rose-700">
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    <h3 className="mb-1 line-clamp-1 text-xl font-semibold text-rose-700">
                       {memory.title}
                     </h3>
                     <p className="mb-2 text-sm text-gray-500">{memory.date}</p>
-                    <p className="text-gray-700">{memory.description}</p>
+                    <p className="line-clamp-3 flex-1 text-gray-700">
+                      {memory.description}
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
