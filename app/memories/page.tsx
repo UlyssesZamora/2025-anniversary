@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Navbar from "@/components/Navbar";
 
 type Memory = {
   id: string;
@@ -134,54 +134,7 @@ export default function MemoriesPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white/80 px-6 backdrop-blur-sm">
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-semibold text-rose-600"
-        >
-          <Heart className="h-5 w-5 fill-rose-600" />
-          <span>Our Story</span>
-        </Link>
-        <nav className="hidden space-x-4 md:block">
-          <Link href="/" className="text-sm font-medium hover:text-rose-600">
-            Home
-          </Link>
-          <Link href="/memories" className="text-sm font-medium text-rose-600">
-            Memories
-          </Link>
-          <Link
-            href="/letter"
-            className="text-sm font-medium hover:text-rose-600"
-          >
-            Love Letter
-          </Link>
-          <Link
-            href="/making-of"
-            className="text-sm font-medium hover:text-rose-600"
-          >
-            Making Of
-          </Link>
-        </nav>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <span className="sr-only">Toggle menu</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6"
-          >
-            <line x1="4" x2="20" y1="12" y2="12" />
-            <line x1="4" x2="20" y1="6" y2="6" />
-            <line x1="4" x2="20" y1="18" y2="18" />
-          </svg>
-        </Button>
-      </header>
+      <Navbar />
       <main className="flex-1 bg-rose-50/50 px-4 py-12">
         <div className="mx-auto max-w-6xl">
           <h1 className="mb-8 text-center text-4xl font-bold text-rose-700">
@@ -192,7 +145,7 @@ export default function MemoriesPage() {
             tells a story of our journey and the love we share.
           </p>
 
-          <div className="mb-8 flex justify-center">
+          <div className="mb-8 flex justify-center items-center gap-4">
             <Select
               onValueChange={handleYearChange}
               defaultValue={selectedYear}
@@ -208,6 +161,11 @@ export default function MemoriesPage() {
                 <SelectItem value="2023">2023</SelectItem>
               </SelectContent>
             </Select>
+            <Link href="/add-memory">
+              <Button className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">
+                Add Memory
+              </Button>
+            </Link>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
