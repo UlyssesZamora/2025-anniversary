@@ -55,3 +55,18 @@ export async function uploadMemory(req, res) {
     res.status(500).json({ error: "Server error" });
   }
 }
+
+export async function getAllMemories(req, res) {
+  try {
+    const db = getDb();
+    const photos = await db
+      .collection("photos")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.status(200).json({ photos });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}

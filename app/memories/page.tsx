@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useInView } from "react-intersection-observer";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import Navbar from "@/components/Navbar";
+import { useMemories } from "../hooks/useMemories";
 import {
   Select,
   SelectContent,
@@ -14,123 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Navbar from "@/components/Navbar";
-
-type Memory = {
-  id: string;
-  title: string;
-  date: string;
-  description: string;
-  image: string;
-};
-
-const fetchMemories = async (year: string, page: number) => {
-  const allMemories = [
-    // 2020
-    {
-      id: "1",
-      title: "Our First Date",
-      date: "January 15, 2020",
-      description: "That amazing dinner at the Italian restaurant downtown.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    {
-      id: "2",
-      title: "Beach Vacation",
-      date: "June 10, 2020",
-      description: "Those perfect days by the ocean we'll never forget.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    // 2021
-    {
-      id: "3",
-      title: "Hiking Adventure",
-      date: "August 22, 2021",
-      description: "When we conquered that mountain trail together.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    {
-      id: "4",
-      title: "Concert Night",
-      date: "October 5, 2021",
-      description: "Dancing to our favorite band under the stars.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    // 2022
-    {
-      id: "5",
-      title: "Holiday Celebration",
-      date: "December 25, 2022",
-      description: "Our first holiday season together was magical.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    {
-      id: "6",
-      title: "Surprise Birthday",
-      date: "February 14, 2022",
-      description: "When I surprised you with that special gift.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    // 2023
-    {
-      id: "7",
-      title: "Cooking Class",
-      date: "March 30, 2023",
-      description: "Learning to make pasta from scratch together.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    {
-      id: "8",
-      title: "Road Trip",
-      date: "July 4, 2023",
-      description: "Exploring new cities and making memories on the open road.",
-      image: "/placeholder.svg?height=400&width=600",
-    },
-    // Add more memories here...
-  ];
-
-  const filteredMemories =
-    year === "all"
-      ? allMemories
-      : allMemories.filter((memory) => memory.date.includes(year));
-  const paginatedMemories = filteredMemories.slice(0, page * 6);
-
-  return {
-    memories: paginatedMemories,
-    hasMore: paginatedMemories.length < filteredMemories.length,
-  };
-};
+import { useState } from "react";
 
 export default function MemoriesPage() {
+  const { data: memories, isLoading, isError } = useMemories();
   const [selectedYear, setSelectedYear] = useState("all");
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const { ref, inView } = useInView();
-
-  useEffect(() => {
-    loadMoreMemories();
-  }, [selectedYear]);
-
-  useEffect(() => {
-    if (inView && hasMore) {
-      loadMoreMemories();
-    }
-  }, [inView, hasMore]);
-
-  const loadMoreMemories = async () => {
-    const result = await fetchMemories(selectedYear, page);
-    setMemories(result.memories);
-    setHasMore(result.hasMore);
-    setPage((prevPage) => prevPage + 1);
-  };
-
-  const handleYearChange = (year: string) => {
-    setSelectedYear(year);
-    setPage(1);
-    setMemories([]);
-    setHasMore(true);
-  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -146,10 +33,7 @@ export default function MemoriesPage() {
           </p>
 
           <div className="mb-8 flex justify-center items-center gap-4">
-            <Select
-              onValueChange={handleYearChange}
-              defaultValue={selectedYear}
-            >
+            <Select onValueChange={setSelectedYear} value={selectedYear}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by year" />
               </SelectTrigger>
@@ -168,17 +52,22 @@ export default function MemoriesPage() {
             </Link>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {memories.map((memory) => (
-              <Link
-                key={memory.id}
-                href={`/memories/${memory.id}`}
-                className="block h-full"
-              >
-                <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg">
+          {isLoading ? (
+            <div className="text-center text-rose-500">Loading memories...</div>
+          ) : isError ? (
+            <div className="text-center text-rose-500">
+              Failed to load memories.
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {memories?.map((memory) => (
+                <Card
+                  key={memory._id}
+                  className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg"
+                >
                   <div className="relative h-64 w-full overflow-hidden">
                     <Image
-                      src={memory.image || "/placeholder.svg"}
+                      src={memory.imageUrl}
                       alt={memory.title}
                       fill
                       className="object-cover transition-transform duration-300 hover:scale-105"
@@ -188,21 +77,15 @@ export default function MemoriesPage() {
                     <h3 className="mb-1 line-clamp-1 text-xl font-semibold text-rose-700">
                       {memory.title}
                     </h3>
-                    <p className="mb-2 text-sm text-gray-500">{memory.date}</p>
+                    <p className="mb-2 text-sm text-gray-500">
+                      {memory.takenMonth}/{memory.takenDay}/{memory.takenYear}
+                    </p>
                     <p className="line-clamp-3 flex-1 text-gray-700">
                       {memory.description}
                     </p>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
-          </div>
-
-          {hasMore && (
-            <div ref={ref} className="mt-8 flex justify-center">
-              <Button onClick={loadMoreMemories} variant="outline">
-                Load More Memories
-              </Button>
+              ))}
             </div>
           )}
         </div>
