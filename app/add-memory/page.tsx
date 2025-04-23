@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
@@ -8,6 +8,8 @@ import heic2any from "heic2any";
 import { useUploadMemory } from "../hooks/useUploadMemory";
 import { Toaster, toast } from "react-hot-toast";
 import { Plus } from "lucide-react";
+import Cropper from "react-easy-crop";
+import type { Area } from "react-easy-crop";
 
 export default function AddMemoryPage() {
   const [title, setTitle] = useState("");
@@ -15,6 +17,11 @@ export default function AddMemoryPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const uploadMemoryMutation = useUploadMemory();
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = e.target.files?.[0] || null;
@@ -30,12 +37,64 @@ export default function AddMemoryPage() {
           toType: "image/jpeg",
         });
         const convertedBlob = Array.isArray(output) ? output[0] : output;
-        setPreview(URL.createObjectURL(convertedBlob));
+        setImageSrc(URL.createObjectURL(convertedBlob));
       } else {
-        setPreview(URL.createObjectURL(selectedFile));
+        setImageSrc(URL.createObjectURL(selectedFile));
       }
+      setShowCropper(true);
     } else {
       setPreview(null);
+      setImageSrc(null);
+      setShowCropper(false);
+    }
+  }
+
+  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  async function getCroppedImg(imageSrc: string, crop: Area) {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("No 2d context");
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+    ctx.drawImage(
+      image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      crop.width,
+      crop.height
+    );
+    return new Promise<string>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(URL.createObjectURL(blob));
+        }
+      }, "image/jpeg");
+    });
+  }
+
+  function createImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.addEventListener("load", () => resolve(img));
+      img.addEventListener("error", (err) => reject(err));
+      img.setAttribute("crossOrigin", "anonymous");
+      img.src = url;
+    });
+  }
+
+  async function handleCropConfirm() {
+    if (imageSrc && croppedAreaPixels) {
+      const croppedImg = await getCroppedImg(imageSrc, croppedAreaPixels);
+      setPreview(croppedImg);
+      setShowCropper(false);
     }
   }
 
@@ -102,19 +161,52 @@ export default function AddMemoryPage() {
                     onChange={handleImageChange}
                     className="hidden"
                   />
+                  {showCropper && imageSrc && (
+                    <div className="relative mt-4 h-64 w-full bg-gray-200 rounded-md overflow-hidden">
+                      <Cropper
+                        image={imageSrc}
+                        crop={crop}
+                        zoom={zoom}
+                        aspect={1}
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                        onCropComplete={onCropComplete}
+                      />
+                      <div className="absolute bottom-2 left-0 w-full flex justify-center gap-4">
+                        <input
+                          type="range"
+                          min={1}
+                          max={3}
+                          step={0.01}
+                          value={zoom}
+                          onChange={(e) => setZoom(Number(e.target.value))}
+                          className="w-1/2"
+                        />
+                        <button
+                          type="button"
+                          className="px-3 py-1 text-sm bg-rose-600 text-white rounded shadow hover:bg-rose-700 transition-colors"
+                          style={{ minWidth: 0 }}
+                          onClick={handleCropConfirm}
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {preview ? (
                     <div className="relative mt-4">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={preview}
                         alt="Preview"
-                        className="h-40 w-full object-cover rounded-md border"
+                        className="h-64 w-full object-cover rounded-md border"
                       />
                       <button
                         type="button"
                         onClick={() => {
                           setFile(null);
                           setPreview(null);
+                          setImageSrc(null);
                         }}
                         className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-gray-700 hover:bg-rose-100 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
                         aria-label="Remove photo preview"
@@ -123,16 +215,18 @@ export default function AddMemoryPage() {
                       </button>
                     </div>
                   ) : (
-                    <label
-                      htmlFor="photo-input"
-                      className="mt-4 flex flex-col items-center justify-center h-40 w-full border-2 border-dashed border-rose-200 rounded-md bg-rose-50 text-rose-300 cursor-pointer hover:bg-rose-100 transition-colors"
-                      style={{ minHeight: "10rem" }}
-                    >
-                      <Plus size={40} />
-                      <span className="mt-2 text-rose-400 font-medium">
-                        Add Photo
-                      </span>
-                    </label>
+                    !showCropper && (
+                      <label
+                        htmlFor="photo-input"
+                        className="mt-4 flex flex-col items-center justify-center h-40 w-full border-2 border-dashed border-rose-200 rounded-md bg-rose-50 text-rose-300 cursor-pointer hover:bg-rose-100 transition-colors"
+                        style={{ minHeight: "10rem" }}
+                      >
+                        <Plus size={40} />
+                        <span className="mt-2 text-rose-400 font-medium">
+                          Add Photo
+                        </span>
+                      </label>
+                    )
                   )}
                 </div>
                 <div>

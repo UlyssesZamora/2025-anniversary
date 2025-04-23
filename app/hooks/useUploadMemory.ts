@@ -16,7 +16,7 @@ function toUrlEncoded(data: Record<string, string | number>) {
 }
 
 async function uploadMemory(data: UploadMemoryInput) {
-  const res = await fetch("http://localhost:4000/api/upload-memory", {
+  const res = await fetch("http://192.168.1.148:4000/api/upload-memory", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: toUrlEncoded(data as unknown as Record<string, string | number>),

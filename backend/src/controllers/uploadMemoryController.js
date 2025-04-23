@@ -12,15 +12,22 @@ export async function uploadMemory(req, res) {
   try {
     const { title, description, takenDay, takenMonth, takenYear, image } =
       req.body;
+    // Convert date fields to numbers
+    const day = parseInt(takenDay, 10);
+    const month = parseInt(takenMonth, 10);
+    const year = parseInt(takenYear, 10);
+
     if (
       !title ||
       !description ||
-      !takenDay ||
-      !takenMonth ||
-      !takenYear ||
+      isNaN(day) ||
+      isNaN(month) ||
+      isNaN(year) ||
       !image
     ) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ error: "Missing or invalid required fields" });
     }
     // Upload image to S3
     const buffer = getBase64Buffer(image);
@@ -34,18 +41,18 @@ export async function uploadMemory(req, res) {
         ContentType: "image/jpeg",
       })
     );
-    const s3Url = `https://${bucket}.s3.amazonaws.com/${fileName}`;
+    const s3Url = `https://${bucket}.s3.us-east-1.amazonaws.com/${fileName}`;
     const db = getDb();
     const memory = {
       title,
       description,
-      takenDay,
-      takenMonth,
-      takenYear,
+      takenDay: day,
+      takenMonth: month,
+      takenYear: year,
       imageUrl: s3Url,
       createdAt: new Date(),
     };
-    const result = await db.collection("photos").insertOne(memory);
+    const result = await db.collection("Photos").insertOne(memory);
     res.status(201).json({
       message: "Memory uploaded successfully",
       memory: { ...memory, _id: result.insertedId },
@@ -59,12 +66,29 @@ export async function uploadMemory(req, res) {
 export async function getAllMemories(req, res) {
   try {
     const db = getDb();
+    const { year } = req.query;
+    const filter = year && year !== "all" ? { takenYear: parseInt(year) } : {};
+    console.log(filter);
     const photos = await db
-      .collection("photos")
-      .find({})
+      .collection("Photos")
+      .find(filter)
       .sort({ createdAt: -1 })
       .toArray();
+
     res.status(200).json({ photos });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
+export async function getMemoryYears(req, res) {
+  try {
+    const db = getDb();
+    const years = await db.collection("Photos").distinct("takenYear");
+    years.sort((a, b) => b - a); // Descending order
+    console.log(years);
+    res.status(200).json({ years });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

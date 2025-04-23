@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import { useMemories } from "../hooks/useMemories";
+import { useMemoryYears } from "../hooks/useMemoryYears";
 import {
   Select,
   SelectContent,
@@ -16,8 +17,13 @@ import {
 import { useState } from "react";
 
 export default function MemoriesPage() {
-  const { data: memories, isLoading, isError } = useMemories();
   const [selectedYear, setSelectedYear] = useState("all");
+  const { data: memories, isLoading, isError } = useMemories(selectedYear);
+  const {
+    data: years,
+    isLoading: yearsLoading,
+    isError: yearsError,
+  } = useMemoryYears();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -33,16 +39,22 @@ export default function MemoriesPage() {
           </p>
 
           <div className="mb-8 flex justify-center items-center gap-4">
-            <Select onValueChange={setSelectedYear} value={selectedYear}>
+            <Select
+              onValueChange={setSelectedYear}
+              value={selectedYear}
+              disabled={yearsLoading || yearsError}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by year" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Years</SelectItem>
-                <SelectItem value="2020">2020</SelectItem>
-                <SelectItem value="2021">2021</SelectItem>
-                <SelectItem value="2022">2022</SelectItem>
-                <SelectItem value="2023">2023</SelectItem>
+                {years &&
+                  years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <Link href="/add-memory">
@@ -53,7 +65,23 @@ export default function MemoriesPage() {
           </div>
 
           {isLoading ? (
-            <div className="text-center text-rose-500">Loading memories...</div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card
+                  key={i}
+                  className="flex h-full flex-col overflow-hidden animate-pulse bg-rose-100/50"
+                >
+                  <div className="relative h-64 w-full overflow-hidden bg-rose-100">
+                    {/* Empty image skeleton */}
+                  </div>
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    <div className="h-6 w-1/2 bg-rose-200 rounded mb-2" />
+                    <div className="h-4 w-1/3 bg-rose-200 rounded mb-2" />
+                    <div className="h-4 w-full bg-rose-200 rounded" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : isError ? (
             <div className="text-center text-rose-500">
               Failed to load memories.
