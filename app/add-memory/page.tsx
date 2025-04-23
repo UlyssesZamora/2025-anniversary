@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import heic2any from "heic2any";
+import { useUploadMemory } from "../hooks/useUploadMemory";
+import { Toaster, toast } from "react-hot-toast";
+import { Plus } from "lucide-react";
 
 export default function AddMemoryPage() {
-  const [date, setDate] = useState("");
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const uploadMemoryMutation = useUploadMemory();
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = e.target.files?.[0] || null;
@@ -35,18 +39,47 @@ export default function AddMemoryPage() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    console.log({
-      date,
+    if (!file) return;
+    const takenDate = new Date(file.lastModified);
+    const takenDay = takenDate.getDate();
+    const takenMonth = takenDate.getMonth() + 1;
+    const takenYear = takenDate.getFullYear();
+
+    // Convert file to base64
+    const toBase64 = (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+      });
+    const image = await toBase64(file);
+
+    uploadMemoryMutation.mutate({
+      title,
       description,
-      file,
-      preview,
+      takenDay,
+      takenMonth,
+      takenYear,
+      image,
     });
+  }
+
+  // Show toast on success
+  if (uploadMemoryMutation.isSuccess) {
+    toast.success("Memory added!");
+    setTitle("");
+    setDescription("");
+    setFile(null);
+    setPreview(null);
+    uploadMemoryMutation.reset();
   }
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Toaster position="top-center" />
       <Navbar />
       <main className="flex-1 bg-rose-50/50 px-4 py-12">
         <div className="mx-auto max-w-md">
@@ -63,29 +96,55 @@ export default function AddMemoryPage() {
                     Photo
                   </label>
                   <input
+                    id="photo-input"
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200"
+                    className="hidden"
                   />
-                  {preview && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={preview}
-                      alt="Preview"
-                      className="mt-4 h-40 w-full object-cover rounded-md border"
-                    />
+                  {preview ? (
+                    <div className="relative mt-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="h-40 w-full object-cover rounded-md border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFile(null);
+                          setPreview(null);
+                        }}
+                        className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-gray-700 hover:bg-rose-100 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        aria-label="Remove photo preview"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="photo-input"
+                      className="mt-4 flex flex-col items-center justify-center h-40 w-full border-2 border-dashed border-rose-200 rounded-md bg-rose-50 text-rose-300 cursor-pointer hover:bg-rose-100 transition-colors"
+                      style={{ minHeight: "10rem" }}
+                    >
+                      <Plus size={40} />
+                      <span className="mt-2 text-rose-400 font-medium">
+                        Add Photo
+                      </span>
+                    </label>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date
+                    Title
                   </label>
                   <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                     className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                    placeholder="Give this memory a title..."
                   />
                 </div>
                 <div>
@@ -102,9 +161,13 @@ export default function AddMemoryPage() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full bg-rose-600 hover:bg-rose-700"
+                  className="w-full bg-rose-600 hover:bg-rose-700 flex items-center justify-center"
+                  disabled={uploadMemoryMutation.isPending}
                 >
-                  Add Memory
+                  {uploadMemoryMutation.isPending ? (
+                    <span className="inline-block w-5 h-5 border-2 border-white border-t-rose-500 rounded-full animate-spin mr-2"></span>
+                  ) : null}
+                  {uploadMemoryMutation.isPending ? "Adding..." : "Add Memory"}
                 </Button>
               </form>
             </CardContent>
