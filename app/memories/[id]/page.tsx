@@ -1,53 +1,37 @@
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowLeft, Heart } from "lucide-react"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft, Heart } from "lucide-react";
 
-// This would typically come from a database or API
-const getMemoryById = (id: string) => {
-  const memories = [
-    {
-      id: "1",
-      title: "Our First Date",
-      date: "January 15, 2022",
-      description: "That amazing dinner at the Italian restaurant downtown.",
-      fullDescription:
-        "We met at that cozy Italian restaurant downtown. I remember being so nervous, but as soon as I saw your smile, all my worries melted away. We talked for hours about our dreams, our favorite books, and our childhood memories. The way you laughed at my jokes made my heart skip a beat. I knew that night that there was something special between us.",
-      image: "/placeholder.svg?height=600&width=800",
-      gallery: [
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-      ],
-    },
-    {
-      id: "2",
-      title: "Beach Vacation",
-      date: "June 10, 2022",
-      description: "Those perfect days by the ocean we'll never forget.",
-      fullDescription:
-        "Our first vacation together was magical. We spent days lounging on the beach, swimming in the crystal-clear water, and watching the most beautiful sunsets. Remember that night we stayed up talking under the stars? Or when we tried paddleboarding and you kept falling off? Those moments of laughter and connection are etched in my memory forever.",
-      image: "/placeholder.svg?height=600&width=800",
-      gallery: [
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-      ],
-    },
-    // Add more memories as needed
-  ]
-
-  return memories.find((memory) => memory.id === id) || memories[0]
+import { Button } from "@/components/ui/button";
+import { useGetMemory } from "@/app/hooks/useGetMemory";
+import { useGetMemoryByDate } from "@/app/hooks/useGetMemoryByDate";
+import { useSearchParams } from "next/navigation";
+interface MemoryPageProps {
+  params: { id: string; day: number; month: number; year: number };
 }
 
-export default function MemoryPage({ params }: { params: { id: string } }) {
-  const memory = getMemoryById(params.id)
+export default function MemoryPage({ params }: MemoryPageProps) {
+  const { id } = params;
+  const searchParams = useSearchParams();
+  const day = parseInt(searchParams.get("day") || "0");
+  const month = parseInt(searchParams.get("month") || "0");
+  const year = parseInt(searchParams.get("year") || "0");
+  const { data: memory } = useGetMemory(id);
+  const { data: memories } = useGetMemoryByDate(day, month, year, id);
+
+  const filteredMemories = memories?.memories.filter(
+    (memory) => memory._id !== id
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white/80 px-6 backdrop-blur-sm">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-rose-600">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-semibold text-rose-600"
+        >
           <Heart className="h-5 w-5 fill-rose-600" />
           <span>Our Story</span>
         </Link>
@@ -58,10 +42,16 @@ export default function MemoryPage({ params }: { params: { id: string } }) {
           <Link href="/memories" className="text-sm font-medium text-rose-600">
             Memories
           </Link>
-          <Link href="/letter" className="text-sm font-medium hover:text-rose-600">
+          <Link
+            href="/letter"
+            className="text-sm font-medium hover:text-rose-600"
+          >
             Love Letter
           </Link>
-          <Link href="/making-of" className="text-sm font-medium hover:text-rose-600">
+          <Link
+            href="/making-of"
+            className="text-sm font-medium hover:text-rose-600"
+          >
             Making Of
           </Link>
         </nav>
@@ -95,50 +85,63 @@ export default function MemoryPage({ params }: { params: { id: string } }) {
             Back to all memories
           </Link>
 
-          <div className="overflow-hidden rounded-xl bg-white shadow-md">
-            <div className="relative h-80 w-full sm:h-96">
-              <Image
-                src={memory.image || "/placeholder.svg"}
-                alt={memory.title}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <h1 className="mb-2 text-3xl font-bold text-rose-700">{memory.title}</h1>
-              <p className="mb-6 text-sm text-gray-500">{memory.date}</p>
-
-              <div className="prose max-w-none text-gray-700">
-                <p className="text-lg">{memory.fullDescription}</p>
+          {memory && (
+            <div className="overflow-hidden rounded-xl bg-white shadow-md">
+              <div className="relative h-80 w-full sm:h-96">
+                <Image
+                  src={memory.imageUrl}
+                  alt={memory.title}
+                  fill
+                  className="object-cover"
+                  priority
+                />
               </div>
 
-              <div className="mt-8">
-                <h2 className="mb-4 text-xl font-semibold text-gray-900">Photo Gallery</h2>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {memory.gallery.map((photo, index) => (
-                    <div key={index} className="relative aspect-square overflow-hidden rounded-lg">
-                      <Image
-                        src={photo || "/placeholder.svg"}
-                        alt={`${memory.title} photo ${index + 1}`}
-                        fill
-                        className="object-cover transition-transform duration-300 hover:scale-105"
-                      />
-                    </div>
-                  ))}
+              <div className="p-6 sm:p-8">
+                <h1 className="mb-2 text-3xl font-bold text-rose-700">
+                  {memory.title}
+                </h1>
+                <p className="mb-6 text-sm text-gray-500">
+                  {memory.takenDay} {memory.takenMonth} {memory.takenYear}
+                </p>
+
+                <div className="prose max-w-none text-gray-700">
+                  <p className="text-lg">{memory.description}</p>
+                </div>
+
+                <div className="mt-8">
+                  <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                    Photo Gallery
+                  </h2>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {filteredMemories?.map((photo, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square overflow-hidden rounded-lg"
+                      >
+                        <Image
+                          src={photo.imageUrl}
+                          alt={`${photo.title} photo ${index + 1}`}
+                          fill
+                          className="object-cover transition-transform duration-300 hover:scale-105"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
       <footer className="border-t bg-gray-50 px-6 py-8">
         <div className="mx-auto max-w-7xl text-center">
           <p className="mb-2 text-sm text-gray-600">Made with ❤️ for you</p>
-          <p className="text-xs text-gray-500">Happy Anniversary! {new Date().getFullYear()}</p>
+          <p className="text-xs text-gray-500">
+            Happy Anniversary! {new Date().getFullYear()}
+          </p>
         </div>
       </footer>
     </div>
-  )
+  );
 }

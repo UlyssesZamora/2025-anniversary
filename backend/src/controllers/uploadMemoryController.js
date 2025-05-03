@@ -1,6 +1,7 @@
 import { getDb } from "../config/db.js";
 import { s3 } from "../utils/s3.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { ObjectId } from "mongodb";
 
 function getBase64Buffer(dataUrl) {
   // Remove data URL prefix and decode base64
@@ -89,6 +90,59 @@ export async function getMemoryYears(req, res) {
     years.sort((a, b) => b - a); // Descending order
     console.log(years);
     res.status(200).json({ years });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
+export async function getMemoryById(req, res) {
+  try {
+    const { id } = req.query;
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ error: "Missing or invalid required fields" });
+    }
+
+    const db = getDb();
+    let objectId;
+    try {
+      objectId = new ObjectId(id);
+    } catch (e) {
+      return res.status(400).json({ error: e.getMessage() });
+    }
+
+    const memory = await db.collection("Photos").findOne({ _id: objectId });
+
+    console.log(memory);
+
+    if (!memory) {
+      return res.status(404).json({ error: "Memory not found" });
+    }
+
+    res.status(200).json(memory);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
+export async function getMemoryByDate(req, res) {
+  try {
+    const { day, month, year, id } = req.query;
+    const db = getDb();
+    const memories = await db
+      .collection("Photos")
+      .find({
+        takenDay: parseInt(day),
+        takenMonth: parseInt(month),
+        takenYear: parseInt(year),
+        _id: { $ne: id },
+      })
+      .toArray();
+    res.status(200).json({ memories });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

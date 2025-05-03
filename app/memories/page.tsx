@@ -93,14 +93,17 @@ export default function MemoriesPage() {
                   key={memory._id}
                   className="flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg"
                 >
-                  <div className="relative h-64 w-full overflow-hidden">
+                  <Link
+                    href={`/memories/${memory._id}?day=${memory.takenDay}&month=${memory.takenMonth}&year=${memory.takenYear}`}
+                    className="relative h-64 w-full overflow-hidden block group"
+                  >
                     <Image
                       src={memory.imageUrl}
                       alt={memory.title}
                       fill
-                      className="object-cover transition-transform duration-300 hover:scale-105"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                  </div>
+                  </Link>
                   <CardContent className="flex flex-1 flex-col p-4">
                     <h3 className="mb-1 line-clamp-1 text-xl font-semibold text-rose-700">
                       {memory.title}
